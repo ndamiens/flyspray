@@ -296,32 +296,39 @@ function tpl_tasklink($task, $text = null, $strict = false, $attrs = array(), $t
  *
  * For a link with user icon use tpl_userlinkavatar().
  *
- * @param int uid user_id from {users} db table
+ * @param int|array uid user_id from {users} db table
  */
 function tpl_userlink($uid)
 {
-    global $db, $user;
+	global $db, $user;
 
-    static $cache = array();
+	static $cache = array();
 
-    if (is_array($uid)) {
-        list($uid, $uname, $rname) = $uid;
-    } elseif (empty($cache[$uid])) {
-        $sql = $db->query('SELECT user_name, real_name FROM {users} WHERE user_id = ?',
-                           array(intval($uid)));
-        if ($sql && $db->countRows($sql)) {
-            list($uname, $rname) = $db->fetchRow($sql);
-        }
-    }
-
-	if (isset($uname)) {
-		#$url = createURL(($user->perms('is_admin')) ? 'edituser' : 'user', $uid);
-		# peterdd: I think it is better just to link to the user's page instead direct to the 'edit user' page also for admins.
-		# With more personalisation coming (personal todo list, charts, ..) in future to flyspray
-		# the user page itself is of increasing value. Instead show the 'edit user'-button on user's page.
-		$url = createURL('user', $uid);
-		$cache[$uid] = vsprintf('<a href="%s">%s</a>', array_map(array('Filters', 'noXSS'), array($url, $rname)));
+	if (is_array($uid)) {
+		list($uid, $uname, $rname) = $uid;
 	} elseif (empty($cache[$uid])) {
+		$sql = $db->query('SELECT user_name, real_name FROM {users} WHERE user_id = ?', array(intval($uid)));
+		if ($sql && $db->countRows($sql)) {
+			list($uname, $rname) = $db->fetchRow($sql);
+		}
+	}
+	
+	if (isset($uname)) {
+		$url = createURL('user', $uid);
+
+		# TODO maybe create a Flyspray prefs setting to configure for the target audience?
+		$userlinkname='realname';
+
+		if ($userlinkname=='username') {
+			# probably the prefered way when mention feature is active
+			$cache[$uid] = vsprintf('<a href="%s" class="user" title="%s (%s)"><span>%s</span></a>', array_map(array('Filters', 'noXSS'), array($url, $rname, $uname, $uname)));
+		} elseif ($userlinkname=='realname') {
+			$cache[$uid] = vsprintf('<a href="%s" class="user" title="%s (%s)"><span>%s</span></a>', array_map(array('Filters', 'noXSS'), array($url, $rname, $uname, $rname)));
+		} else {
+			$cache[$uid] = vsprintf('<a href="%s" class="user">%s <span>%s</span></a>', array_map(array('Filters', 'noXSS'), array($url, $rname, $uname)));
+		}
+	} elseif (empty($cache[$uid])) {
+		# TODO maybe distinguish between 'anonymous' and 'deleted user' if possible
 		$cache[$uid] = eL('anonymous');
 	}
 
