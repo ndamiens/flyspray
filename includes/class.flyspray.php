@@ -231,7 +231,9 @@ class Flyspray
         }
 
         $host = 'localhost';
-        if (!empty($_SERVER['HTTP_HOST'])) {
+        if (!empty($_SERVER['HTTP_X_FORWARDED_HOST'])) {
+            $host = $_SERVER['HTTP_X_FORWARDED_HOST'];
+        } elseif (!empty($_SERVER['HTTP_HOST'])) {
             list($host) = explode(':', $_SERVER['HTTP_HOST']);
 
             if (strpos($_SERVER['HTTP_HOST'], ':') !== false && !isset($port)) {
@@ -242,13 +244,19 @@ class Flyspray
         }
 
         if (empty($protocol)) {
-            if (isset($_SERVER['HTTPS']) && !strcasecmp($_SERVER['HTTPS'], 'on')) {
+            if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+                $protocol = $_SERVER['HTTP_X_FORWARDED_PROTO'];
+            } elseif (isset($_SERVER['HTTPS']) && !strcasecmp($_SERVER['HTTPS'], 'on')) {
                 $protocol = 'https';
             } else {
                 $protocol = 'http';
             }
             if (!isset($port) || $port != intval($port)) {
-                $port = isset($_SERVER['SERVER_PORT']) ? $_SERVER['SERVER_PORT'] : 80;
+                if (!empty($_SERVER['HTTP_X_FORWARDED_PORT'])) {
+                    $port = $_SERVER['HTTP_X_FORWARDED_PORT'];
+                } else {
+                    $port = isset($_SERVER['SERVER_PORT']) ? $_SERVER['SERVER_PORT'] : 80;
+                }
             }
         }
 
